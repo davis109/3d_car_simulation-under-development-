@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Texture Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 10px 0;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .texture-container {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Placeholder Texture Generator</h1>
+    <p>This utility creates placeholder textures for the game. Click the buttons to generate and download textures.</p>
+    
+    <div class="texture-container">
+        <h2>Grass Texture</h2>
+        <canvas id="grassCanvas" width="512" height="512"></canvas><br>
+        <button onclick="generateGrassTexture()">Generate Grass</button>
+        <button onclick="downloadTexture('grassCanvas', 'grass.jpg')">Download Grass Texture</button>
+    </div>
+    
+    <div class="texture-container">
+        <h2>Asphalt Texture</h2>
+        <canvas id="asphaltCanvas" width="512" height="512"></canvas><br>
+        <button onclick="generateAsphaltTexture()">Generate Asphalt</button>
+        <button onclick="downloadTexture('asphaltCanvas', 'asphalt.jpg')">Download Asphalt Texture</button>
+    </div>
+    
+    <div class="texture-container">
+        <h2>Cloud Texture</h2>
+        <canvas id="cloudCanvas" width="512" height="512"></canvas><br>
+        <button onclick="generateCloudTexture()">Generate Cloud</button>
+        <button onclick="downloadTexture('cloudCanvas', 'cloud.png', true)">Download Cloud Texture</button>
+    </div>
+    
+    <script>
+        // Generate grass texture
+        function generateGrassTexture() {
+            const canvas = document.getElementById('grassCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Add noise and variation
+            for (let i = 0; i < 5000; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const size = 1 + Math.random() * 3;
+                
+                // Slight color variation
+                const r = 50 + Math.random() * 30;
+                const g = 150 + Math.random() * 50;
+                const b = 50 + Math.random() * 30;
+                
+                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                ctx.fillRect(x, y, size, size);
+            }
+            
+            // Add some grass-like details
+            for (let i = 0; i < 500; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const h = 5 + Math.random() * 15;
+                const w = 1 + Math.random() * 2;
+                
+                ctx.fillStyle = '#88FF88';
+                ctx.fillRect(x, y, w, h);
+            }
+        }
+        
+        // Generate asphalt texture
+        function generateAsphaltTexture() {
+            const canvas = document.getElementById('asphaltCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = '#333333';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Add noise and variation
+            for (let i = 0; i < 8000; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const size = 1 + Math.random() * 2;
+                
+                // Slight color variation
+                const shade = 50 + Math.random() * 50;
+                ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`;
+                ctx.fillRect(x, y, size, size);
+            }
+            
+            // Add some cracks
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const length = 20 + Math.random() * 80;
+                const angle = Math.random() * Math.PI * 2;
+                
+                ctx.strokeStyle = '#222222';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(
+                    x + Math.cos(angle) * length,
+                    y + Math.sin(angle) * length
+                );
+                ctx.stroke();
+            }
+        }
+        
+        // Generate cloud texture
+        function generateCloudTexture() {
+            const canvas = document.getElementById('cloudCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas with transparency
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Create cloud shape
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = canvas.width / 3;
+            
+            // Draw multiple circles to make cloud shape
+            const circles = 8;
+            for (let i = 0; i < circles; i++) {
+                const angle = (i / circles) * Math.PI * 2;
+                const x = centerX + Math.cos(angle) * (radius * 0.5);
+                const y = centerY + Math.sin(angle) * (radius * 0.3);
+                const size = radius * (0.6 + Math.random() * 0.4);
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Add a center circle
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add some gradient for depth
+            const gradient = ctx.createRadialGradient(
+                centerX, centerY, 0,
+                centerX, centerY, radius * 1.5
+            );
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0.5)');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        // Function to download the texture
+        function downloadTexture(canvasId, filename, transparent = false) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            
+            // Get the appropriate mime type
+            const mimeType = filename.endsWith('.png') ? 'image/png' : 'image/jpeg';
+            link.download = filename;
+            
+            // Convert canvas to data URL
+            if (transparent && mimeType === 'image/png') {
+                link.href = canvas.toDataURL('image/png');
+            } else {
+                link.href = canvas.toDataURL('image/jpeg', 0.9);
+            }
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // Generate all textures on page load
+        window.onload = function() {
+            generateGrassTexture();
+            generateAsphaltTexture();
+            generateCloudTexture();
+        };
+    </script>
+</body>
+</html> 

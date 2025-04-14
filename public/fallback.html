@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drive Simulator - Fallback</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        
+        #info {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            z-index: 100;
+            background-color: rgba(0,0,0,0.5);
+            padding: 10px;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 10;
+        }
+        
+        #links {
+            position: absolute;
+            top: 50px;
+            width: 100%;
+            text-align: center;
+            z-index: 101;
+        }
+        
+        #links a {
+            display: inline-block;
+            margin: 0 10px;
+            padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+    </style>
+    <link rel="manifest" id="my-manifest-placeholder">
+    <script>
+        // Prevent service worker registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+
+        // Create a minimal valid manifest to avoid errors
+        const manifestObj = {
+            "name": "Drive Simulator - Fallback",
+            "short_name": "Drive Sim",
+            "start_url": "/fallback.html",
+            "display": "standalone",
+            "background_color": "#3A6EA5",
+            "theme_color": "#3A6EA5",
+            "icons": [
+                {
+                    "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFdQIpk3ENsgAAAABJRU5ErkJggg==",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                }
+            ]
+        };
+
+        const manifestString = JSON.stringify(manifestObj);
+        const manifestBlob = new Blob([manifestString], {type: 'application/json'});
+        const manifestUrl = URL.createObjectURL(manifestBlob);
+        document.querySelector('#my-manifest-placeholder').setAttribute('href', manifestUrl);
+    </script>
+</head>
+<body>
+    <div id="info">Fallback Drive Simulator</div>
+    <div id="links">
+        <a href="/">Try Main Version</a>
+        <a href="basic.html">Try Simple Version</a>
+    </div>
+    <div class="controls">
+        <p>W/S - Accelerate/Brake</p>
+        <p>A/D - Steer</p>
+        <p>R - Reset</p>
+    </div>
+
+    <script type="module">
+        // Import Three.js from CDN
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.module.js';
+        
+        // Variables
+        let scene, camera, renderer;
+        let car, road, skybox;
+        let isMoving = false;
+        let speed = 0;
+        let position = { x: 0, z: 0 };
+        let rotation = 0;
+        let keyStates = {};
+        
+        // Constants
+        const MAX_SPEED = 0.2;
+        const ACCELERATION = 0.002;
+        const DECELERATION = 0.001;
+        const TURN_SPEED = 0.03;
+        
+        init();
+        animate();
+        
+        function init() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            
+            // Create camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 2, -5);
+            camera.lookAt(0, 0, 0);
+            
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+            
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(5, 10, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            // Create road
+            createRoad();
+            
+            // Create car
+            createCar();
+            
+            // Create environment
+            createEnvironment();
+            
+            // Add event listeners
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('keydown', (event) => keyStates[event.key.toLowerCase()] = true);
+            window.addEventListener('keyup', (event) => keyStates[event.key.toLowerCase()] = false);
+            
+            console.log('Scene initialized successfully');
+        }
+        
+        function createRoad() {
+            // Create a simple road
+            const roadGeometry = new THREE.PlaneGeometry(10, 100);
+            const roadMaterial = new THREE.MeshStandardMaterial({
+                color: 0x333333,
+                roughness: 0.8
+            });
+            
+            road = new THREE.Mesh(roadGeometry, roadMaterial);
+            road.rotation.x = -Math.PI / 2;
+            road.receiveShadow = true;
+            scene.add(road);
+            
+            // Add road markings
+            const markingGeometry = new THREE.PlaneGeometry(0.25, 100);
+            const markingMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const marking = new THREE.Mesh(markingGeometry, markingMaterial);
+            marking.rotation.x = -Math.PI / 2;
+            marking.position.y = 0.01;
+            scene.add(marking);
+        }
+        
+        function createCar() {
+            // Create a simple car group
+            car = new THREE.Group();
+            
+            // Car body
+            const bodyGeometry = new THREE.BoxGeometry(1.5, 0.75, 3);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x3366cc });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.5;
+            body.castShadow = true;
+            car.add(body);
+            
+            // Car cabin
+            const cabinGeometry = new THREE.BoxGeometry(1.2, 0.6, 1.5);
+            const cabinMaterial = new THREE.MeshStandardMaterial({ color: 0x66ccff });
+            const cabin = new THREE.Mesh(cabinGeometry, cabinMaterial);
+            cabin.position.set(0, 1.1, -0.2);
+            cabin.castShadow = true;
+            car.add(cabin);
+            
+            // Wheels
+            const wheelGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.2, 16);
+            const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            
+            // Front left wheel
+            const wheelFL = new THREE.Mesh(wheelGeometry, wheelMaterial);
+            wheelFL.rotation.z = Math.PI / 2;
+            wheelFL.position.set(-0.8, 0.3, 0.8);
+            car.add(wheelFL);
+            
+            // Front right wheel
+            const wheelFR = new THREE.Mesh(wheelGeometry, wheelMaterial);
+            wheelFR.rotation.z = Math.PI / 2;
+            wheelFR.position.set(0.8, 0.3, 0.8);
+            car.add(wheelFR);
+            
+            // Rear left wheel
+            const wheelRL = new THREE.Mesh(wheelGeometry, wheelMaterial);
+            wheelRL.rotation.z = Math.PI / 2;
+            wheelRL.position.set(-0.8, 0.3, -0.8);
+            car.add(wheelRL);
+            
+            // Rear right wheel
+            const wheelRR = new THREE.Mesh(wheelGeometry, wheelMaterial);
+            wheelRR.rotation.z = Math.PI / 2;
+            wheelRR.position.set(0.8, 0.3, -0.8);
+            car.add(wheelRR);
+            
+            // Add to scene
+            car.position.y = 0.3;
+            scene.add(car);
+        }
+        
+        function createEnvironment() {
+            // Create ground
+            const groundGeometry = new THREE.PlaneGeometry(100, 100);
+            const groundMaterial = new THREE.MeshStandardMaterial({
+                color: 0x4CAF50,
+                roughness: 0.8
+            });
+            
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -0.1;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            // Add some trees
+            for (let i = 0; i < 30; i++) {
+                const tree = createTree();
+                const x = (Math.random() - 0.5) * 80;
+                const z = (Math.random() - 0.5) * 80;
+                
+                // Don't place trees on the road
+                if (Math.abs(x) < 6) continue;
+                
+                tree.position.set(x, 0, z);
+                scene.add(tree);
+            }
+        }
+        
+        function createTree() {
+            const tree = new THREE.Group();
+            
+            // Trunk
+            const trunkGeometry = new THREE.CylinderGeometry(0.2, 0.3, 1.5, 8);
+            const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+            trunk.position.y = 0.75;
+            trunk.castShadow = true;
+            tree.add(trunk);
+            
+            // Leaves
+            const leavesGeometry = new THREE.ConeGeometry(1, 2, 8);
+            const leavesMaterial = new THREE.MeshStandardMaterial({ color: 0x4CAF50 });
+            const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+            leaves.position.y = 2.5;
+            leaves.castShadow = true;
+            tree.add(leaves);
+            
+            return tree;
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Handle car controls
+            handleInput();
+            
+            // Update camera position to follow the car
+            updateCamera();
+            
+            // Render scene
+            renderer.render(scene, camera);
+        }
+        
+        function handleInput() {
+            // Forward/backward movement
+            if (keyStates['w']) {
+                speed = Math.min(speed + ACCELERATION, MAX_SPEED);
+                isMoving = true;
+            } else if (keyStates['s']) {
+                speed = Math.max(speed - ACCELERATION, -MAX_SPEED / 2);
+                isMoving = true;
+            } else {
+                // Deceleration when no key is pressed
+                if (speed > 0) {
+                    speed = Math.max(0, speed - DECELERATION);
+                } else if (speed < 0) {
+                    speed = Math.min(0, speed + DECELERATION);
+                }
+                
+                if (Math.abs(speed) < 0.001) {
+                    speed = 0;
+                    isMoving = false;
+                }
+            }
+            
+            // Steering
+            if (isMoving) {
+                if (keyStates['a']) {
+                    rotation += TURN_SPEED * (speed > 0 ? 1 : -1);
+                }
+                
+                if (keyStates['d']) {
+                    rotation -= TURN_SPEED * (speed > 0 ? 1 : -1);
+                }
+            }
+            
+            // Reset car position on 'r' key
+            if (keyStates['r']) {
+                position.x = 0;
+                position.z = 0;
+                rotation = 0;
+                speed = 0;
+            }
+            
+            // Update car position
+            position.x += Math.sin(rotation) * speed;
+            position.z += Math.cos(rotation) * speed;
+            
+            // Apply to car object
+            car.position.x = position.x;
+            car.position.z = position.z;
+            car.rotation.y = rotation;
+            
+            // Update status text
+            document.getElementById('info').textContent = `Speed: ${Math.abs(speed * 500).toFixed(1)} km/h`;
+        }
+        
+        function updateCamera() {
+            // Calculate camera position behind the car
+            const cameraOffset = new THREE.Vector3(
+                -Math.sin(rotation) * 5,
+                2,
+                -Math.cos(rotation) * 5
+            );
+            
+            // Set camera position
+            camera.position.x = position.x + cameraOffset.x;
+            camera.position.y = position.y + cameraOffset.y + 1;
+            camera.position.z = position.z + cameraOffset.z;
+            
+            // Look at car
+            camera.lookAt(new THREE.Vector3(
+                position.x,
+                position.y + 1,
+                position.z
+            ));
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+    </script>
+</body>
+</html> 

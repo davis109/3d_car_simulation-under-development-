@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Drive Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom, #87CEEB, #3A6EA5);
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div class="controls">
+        <p>W/S - Accelerate/Brake</p>
+        <p>A/D - Steer</p>
+        <p>R - Reset</p>
+    </div>
+
+    <script>
+        // Simple Three.js setup directly in the HTML
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM Content Loaded in simple.html');
+            
+            // Create script element for bundle.js
+            const script = document.createElement('script');
+            script.src = 'bundle.js';
+            script.onerror = (error) => {
+                console.error('Error loading bundle.js:', error);
+                document.body.innerHTML += '<h1 style="color: white; text-align: center; margin-top: 40vh;">Error loading game engine. Check console for details.</h1>';
+            };
+            
+            // Check if bundle.js loads correctly
+            script.onload = () => {
+                console.log('Bundle.js loaded successfully!');
+            };
+            
+            document.body.appendChild(script);
+        });
+    </script>
+</body>
+</html> 

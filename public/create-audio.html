@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .audio-container {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #visualizer {
+            width: 100%;
+            height: 100px;
+            background-color: #f0f0f0;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Placeholder Audio Generator</h1>
+    <p>This utility creates placeholder audio files for the game. Click the buttons to generate and download audio.</p>
+    
+    <div class="audio-container">
+        <h2>Engine Sound</h2>
+        <p>A looping engine sound that changes pitch with speed</p>
+        <button onclick="generateEngineSound()">Generate Engine Sound</button>
+        <button onclick="playEngineSound()">Play</button>
+        <button onclick="stopEngineSound()">Stop</button>
+        <button onclick="downloadEngineSound()">Download Engine Sound</button>
+        <div id="visualizer"></div>
+    </div>
+    
+    <div class="audio-container">
+        <h2>Wind Sound</h2>
+        <p>Ambient wind noise</p>
+        <button onclick="generateWindSound()">Generate Wind Sound</button>
+        <button onclick="playWindSound()">Play</button>
+        <button onclick="stopWindSound()">Stop</button>
+        <button onclick="downloadWindSound()">Download Wind Sound</button>
+    </div>
+    
+    <div class="audio-container">
+        <h2>Road Noise</h2>
+        <p>Tire-on-road noise</p>
+        <button onclick="generateRoadSound()">Generate Road Sound</button>
+        <button onclick="playRoadSound()">Play</button>
+        <button onclick="stopRoadSound()">Stop</button>
+        <button onclick="downloadRoadSound()">Download Road Sound</button>
+    </div>
+    
+    <script>
+        // Create an AudioContext
+        let audioContext;
+        let canvasContext;
+        let analyser;
+        let dataArray;
+        let visualizer;
+        
+        // Sound sources
+        let engineOscillator;
+        let engineGain;
+        
+        let windSource;
+        let windGain;
+        
+        let roadSource;
+        let roadGain;
+        
+        let engineBuffer;
+        let windBuffer;
+        let roadBuffer;
+        
+        // Initialize audio
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Set up analyser
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+                analyser.connect(audioContext.destination);
+                
+                // Set up canvas for visualization
+                visualizer = document.getElementById('visualizer');
+                canvasContext = visualizer.getContext('2d');
+            }
+        }
+        
+        // Function to draw the waveform
+        function drawWaveform() {
+            requestAnimationFrame(drawWaveform);
+            
+            analyser.getByteTimeDomainData(dataArray);
+            
+            canvasContext.fillStyle = '#f0f0f0';
+            canvasContext.fillRect(0, 0, visualizer.width, visualizer.height);
+            
+            canvasContext.lineWidth = 2;
+            canvasContext.strokeStyle = '#4CAF50';
+            canvasContext.beginPath();
+            
+            const sliceWidth = visualizer.width / dataArray.length;
+            let x = 0;
+            
+            for (let i = 0; i < dataArray.length; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = v * visualizer.height / 2;
+                
+                if (i === 0) {
+                    canvasContext.moveTo(x, y);
+                } else {
+                    canvasContext.lineTo(x, y);
+                }
+                
+                x += sliceWidth;
+            }
+            
+            canvasContext.lineTo(visualizer.width, visualizer.height / 2);
+            canvasContext.stroke();
+        }
+        
+        // Generate engine sound
+        function generateEngineSound() {
+            initAudio();
+            
+            const duration = 3.0; // 3 seconds of sound
+            const sampleRate = audioContext.sampleRate;
+            const frameCount = sampleRate * duration;
+            
+            engineBuffer = audioContext.createBuffer(1, frameCount, sampleRate);
+            const channelData = engineBuffer.getChannelData(0);
+            
+            // Generate a complex engine sound with harmonics
+            for (let i = 0; i < frameCount; i++) {
+                const t = i / sampleRate;
+                
+                // Main frequency around 80-100Hz
+                const mainFreq = 80 + Math.sin(t * 2) * 5;
+                
+                // Multiple frequencies to make it sound like an engine
+                const sample = 
+                    0.3 * Math.sin(2 * Math.PI * mainFreq * t) + // Fundamental
+                    0.2 * Math.sin(2 * Math.PI * mainFreq * 2 * t) + // 1st harmonic
+                    0.1 * Math.sin(2 * Math.PI * mainFreq * 3 * t) + // 2nd harmonic
+                    0.05 * Math.sin(2 * Math.PI * mainFreq * 4 * t) + // 3rd harmonic
+                    0.1 * Math.random(); // A bit of noise
+                
+                // Add some pulsing
+                const pulseRate = 30; // RPM-like pulsing
+                const pulse = 0.1 * Math.sin(2 * Math.PI * (pulseRate / 60) * t);
+                
+                channelData[i] = Math.max(-0.8, Math.min(0.8, sample + pulse));
+            }
+            
+            alert('Engine sound generated! Click Play to listen.');
+        }
+        
+        // Generate wind sound
+        function generateWindSound() {
+            initAudio();
+            
+            const duration = 5.0; // 5 seconds of sound
+            const sampleRate = audioContext.sampleRate;
+            const frameCount = sampleRate * duration;
+            
+            windBuffer = audioContext.createBuffer(1, frameCount, sampleRate);
+            const channelData = windBuffer.getChannelData(0);
+            
+            // Generate wind-like sound with filtered noise
+            for (let i = 0; i < frameCount; i++) {
+                const t = i / sampleRate;
+                
+                // Basic white noise
+                let sample = (Math.random() * 2 - 1) * 0.5;
+                
+                // Filter it to have more low frequencies
+                if (i > 0) {
+                    sample = sample * 0.2 + channelData[i - 1] * 0.8;
+                }
+                
+                // Add some slow modulation
+                const modulationRate = 0.5; // Hz
+                const modulation = 0.3 * Math.sin(2 * Math.PI * modulationRate * t);
+                
+                channelData[i] = sample * (0.7 + modulation);
+            }
+            
+            alert('Wind sound generated! Click Play to listen.');
+        }
+        
+        // Generate road noise
+        function generateRoadSound() {
+            initAudio();
+            
+            const duration = 4.0; // 4 seconds of sound
+            const sampleRate = audioContext.sampleRate;
+            const frameCount = sampleRate * duration;
+            
+            roadBuffer = audioContext.createBuffer(1, frameCount, sampleRate);
+            const channelData = roadBuffer.getChannelData(0);
+            
+            // Generate road noise with a lowpass filter
+            let prevSample = 0;
+            
+            for (let i = 0; i < frameCount; i++) {
+                const t = i / sampleRate;
+                
+                // Pink-ish noise (more low frequencies)
+                let sample = (Math.random() * 2 - 1) * 0.3;
+                
+                // Apply simple lowpass filter
+                sample = sample * 0.15 + prevSample * 0.85;
+                prevSample = sample;
+                
+                // Add some textural elements (bumps in the road)
+                if (Math.random() < 0.001) {
+                    sample += (Math.random() * 2 - 1) * 0.2;
+                }
+                
+                // Add some rhythmic element for tire seams
+                const seamRate = 5; // Hz
+                const seam = Math.sin(2 * Math.PI * seamRate * t) > 0.95 ? 0.1 : 0;
+                
+                channelData[i] = sample + seam;
+            }
+            
+            alert('Road noise generated! Click Play to listen.');
+        }
+        
+        // Play engine sound
+        function playEngineSound() {
+            if (!engineBuffer) {
+                alert('Generate the engine sound first!');
+                return;
+            }
+            
+            stopEngineSound();
+            initAudio();
+            
+            const source = audioContext.createBufferSource();
+            source.buffer = engineBuffer;
+            source.loop = true;
+            
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 0.8;
+            
+            source.connect(gainNode);
+            gainNode.connect(analyser);
+            
+            source.start();
+            engineOscillator = source;
+            engineGain = gainNode;
+            
+            drawWaveform();
+        }
+        
+        // Play wind sound
+        function playWindSound() {
+            if (!windBuffer) {
+                alert('Generate the wind sound first!');
+                return;
+            }
+            
+            stopWindSound();
+            initAudio();
+            
+            const source = audioContext.createBufferSource();
+            source.buffer = windBuffer;
+            source.loop = true;
+            
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 0.5;
+            
+            source.connect(gainNode);
+            gainNode.connect(analyser);
+            
+            source.start();
+            windSource = source;
+            windGain = gainNode;
+            
+            drawWaveform();
+        }
+        
+        // Play road sound
+        function playRoadSound() {
+            if (!roadBuffer) {
+                alert('Generate the road sound first!');
+                return;
+            }
+            
+            stopRoadSound();
+            initAudio();
+            
+            const source = audioContext.createBufferSource();
+            source.buffer = roadBuffer;
+            source.loop = true;
+            
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 0.6;
+            
+            source.connect(gainNode);
+            gainNode.connect(analyser);
+            
+            source.start();
+            roadSource = source;
+            roadGain = gainNode;
+            
+            drawWaveform();
+        }
+        
+        // Stop engine sound
+        function stopEngineSound() {
+            if (engineOscillator) {
+                engineOscillator.stop();
+                engineOscillator = null;
+            }
+        }
+        
+        // Stop wind sound
+        function stopWindSound() {
+            if (windSource) {
+                windSource.stop();
+                windSource = null;
+            }
+        }
+        
+        // Stop road sound
+        function stopRoadSound() {
+            if (roadSource) {
+                roadSource.stop();
+                roadSource = null;
+            }
+        }
+        
+        // Download engine sound
+        function downloadEngineSound() {
+            if (!engineBuffer) {
+                alert('Generate the engine sound first!');
+                return;
+            }
+            
+            downloadAudioBuffer(engineBuffer, 'engine_loop.mp3');
+        }
+        
+        // Download wind sound
+        function downloadWindSound() {
+            if (!windBuffer) {
+                alert('Generate the wind sound first!');
+                return;
+            }
+            
+            downloadAudioBuffer(windBuffer, 'wind.mp3');
+        }
+        
+        // Download road sound
+        function downloadRoadSound() {
+            if (!roadBuffer) {
+                alert('Generate the road sound first!');
+                return;
+            }
+            
+            downloadAudioBuffer(roadBuffer, 'road_noise.mp3');
+        }
+        
+        // Function to download an AudioBuffer as an audio file
+        function downloadAudioBuffer(buffer, filename) {
+            // We need to convert the AudioBuffer to a WAV file
+            const channels = buffer.numberOfChannels;
+            const length = buffer.length;
+            const sampleRate = buffer.sampleRate;
+            
+            // Create a WAV file
+            const wav = new WavAudioEncoder(sampleRate, channels);
+            
+            const channelData = [];
+            for (let i = 0; i < channels; i++) {
+                channelData.push(buffer.getChannelData(i));
+            }
+            
+            wav.encode(channelData);
+            const blob = wav.finish();
+            
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+        
+        // WAV encoder helper
+        class WavAudioEncoder {
+            constructor(sampleRate, numChannels) {
+                this.sampleRate = sampleRate;
+                this.numChannels = numChannels;
+                this.numSamples = 0;
+                this.dataViews = [];
+            }
+            
+            encode(channelData) {
+                const len = channelData[0].length;
+                const buffer = new Float32Array(len * this.numChannels);
+                
+                for (let i = 0; i < this.numChannels; i++) {
+                    for (let j = 0; j < len; j++) {
+                        buffer[(j * this.numChannels) + i] = channelData[i][j];
+                    }
+                }
+                
+                this.dataViews.push(this._floatTo16BitPCM(buffer));
+                this.numSamples += len;
+            }
+            
+            finish() {
+                const dataSize = this.numSamples * this.numChannels * 2;
+                const view = new DataView(new ArrayBuffer(44));
+                
+                // RIFF identifier
+                this._writeString(view, 0, 'RIFF');
+                // File length
+                view.setUint32(4, 36 + dataSize, true);
+                // RIFF type
+                this._writeString(view, 8, 'WAVE');
+                // Format chunk identifier
+                this._writeString(view, 12, 'fmt ');
+                // Format chunk length
+                view.setUint32(16, 16, true);
+                // Sample format (raw)
+                view.setUint16(20, 1, true);
+                // Channel count
+                view.setUint16(22, this.numChannels, true);
+                // Sample rate
+                view.setUint32(24, this.sampleRate, true);
+                // Byte rate (sample rate * block align)
+                view.setUint32(28, this.sampleRate * this.numChannels * 2, true);
+                // Block align (channel count * bytes per sample)
+                view.setUint16(32, this.numChannels * 2, true);
+                // Bits per sample
+                view.setUint16(34, 16, true);
+                // Data chunk identifier
+                this._writeString(view, 36, 'data');
+                // Data chunk length
+                view.setUint32(40, dataSize, true);
+                
+                const blob = new Blob([view].concat(this.dataViews), { type: 'audio/wav' });
+                return blob;
+            }
+            
+            _floatTo16BitPCM(input) {
+                const output = new DataView(new ArrayBuffer(input.length * 2));
+                for (let i = 0; i < input.length; i++) {
+                    const s = Math.max(-1, Math.min(1, input[i]));
+                    output.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+                }
+                return output;
+            }
+            
+            _writeString(view, offset, string) {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            }
+        }
+    </script>
+</body>
+</html> 
