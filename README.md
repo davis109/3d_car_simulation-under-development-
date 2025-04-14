@@ -1,4 +1,4 @@
-# Slow Drive Simulator
+# Car Drive Simulator
 
 A relaxing driving simulator created with Three.js and TypeScript.
 
