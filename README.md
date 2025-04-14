@@ -13,15 +13,6 @@ A relaxing driving simulator created with Three.js and TypeScript.
 
 **Important: Web browsers cannot directly access files from your local file system (like C:/Users/...) for security reasons**
 
-To use your Porsche model in the game, you need to copy it to the public assets folder:
-
-1. Create the models directory if it doesn't exist: `mkdir -p public/assets/models`
-2. Copy your Porsche model from downloads to the public assets folder:
-   ```
-   copy "C:\Users\sebas\Downloads\2020-porsche-718-cayman-gt4\source\2020_porsche_718_cayman_gt4.glb" "public\assets\models\porsche.glb"
-   ```
-
-The game will now look for the model at `assets/models/porsche.glb` (which maps to `public/assets/models/porsche.glb` on disk).
 
 ## Troubleshooting
 
@@ -109,7 +100,3 @@ This will create a `dist` folder with compiled files ready for deployment.
 - TypeScript - Type-safe JavaScript
 - Webpack - Module bundler
 - WebGL - For hardware-accelerated rendering
-
-## Credits
-
-This project is inspired by [SlowRoads.io](https://slowroads.io/) by [Anslo](https://twitter.com/anslo_). 
